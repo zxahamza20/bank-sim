@@ -55,26 +55,26 @@ def teller(tid):
       mutex.release()
       first_time = False
 
-      # announce that I am free: list entry FIRST, then the semaphore
-      mutex.acquire()
-      free_tellers.append(tid)
-      mutex.release()
-      ready_tellers.release()
+    # announce that I am free: list entry FIRST, then the semaphore
+    mutex.acquire()
+    free_tellers.append(tid)
+    mutex.release()
+    ready_tellers.release()
 
-      say("Teller", tid, "", "waiting for a customer")
-      # sleep until a customer introduces itself
-      customer_arrived[tid].acquire()          
+    say("Teller", tid, "", "waiting for a customer")
+    # sleep until a customer introduces itself
+    customer_arrived[tid].acquire()          
 
-      cid = current_customer[tid]
-      say("Teller", tid, f"Customer {cid}", "serving a customer")
+    cid = current_customer[tid]
+    say("Teller", tid, f"Customer {cid}", "serving a customer")
 
-      # TEMPORARY: count the customer and let main know when all 50 were matched
-      mutex.acquire()
-      customers_served += 1
-      last = (customers_served == NUM_CUSTOMERS)
-      mutex.release()
-      if last:
-        all_served.release()
+    # TEMPORARY: count the customer and let main know when all 50 were matched
+    mutex.acquire()
+    customers_served += 1
+    last = (customers_served == NUM_CUSTOMERS)
+    mutex.release()
+    if last:
+      all_served.release()
 
 def customer(cid):
   kind = random.choice(["deposit", "withdrawal"])
