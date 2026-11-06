@@ -79,3 +79,13 @@ The spec says tellers keep working until no customers are left. I don't want to 
 My plan for this session is to add the line and teller selection, customer introductions, and the teller loop to bank.py.
 
 The goal is 50 "selects teller" lines and 50 "serving a customer" lines, with no customer matched to two tellers and no hang.
+
+# 11-06-2026 13:14pm
+Coding session starts:
+The code I am doing for this session is the line, the teller selection and the introduction in bank.py. A customer now goes through the door, waits for a free teller, picks one, and introduces itself. The teller wakes up and says it is serving that customer.
+
+- ready_tellers is a semaphore starting at 0 that counts free tellers. I used it as the line because acquire() blocks when the value is 0, which is exactly "wait until a teller is free", and returns immediately when a teller is already free, which is "go straight to a ready teller" from the spec. It means I don't need a separate queue.
+
+- free_tellers is a list of the ids of free tellers. The semaphore only counts, so the list is how a customer learns which teller to go to. It is a shared variable, so every append and pop happens inside mutex.
+
+- The teller appends to the list first and releases the semaphore second. If it were the other way around, a customer could get past the semaphore and pop from an empty list. This order guarantees there is always an entry for every successful acquire. 

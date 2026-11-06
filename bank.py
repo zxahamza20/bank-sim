@@ -19,9 +19,17 @@ mutex = threading.Semaphore(1)
 bank_open = threading.Semaphore(0)   
 # keeps output lines from mixing together
 print_lock = threading.Semaphore(1)  
+ # counts free tellers; customers block here = the line
+ready_tellers = threading.Semaphore(0)  
+# one per teller
+customer_arrived = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]  
 
 # Shared variables
 tellers_ready = 0
+# ids of tellers waiting for a customer
+free_tellers = []                   
+# which customer is at each teller       
+current_customer = [None] * NUM_TELLERS    
 
 def say(kind, ident, partner, msg):
   print_lock.acquire()
