@@ -38,3 +38,26 @@ The code I am doing for this session is bank.py. It declares the semaphores, sta
 - main() starts the tellers first, then the customers, and joins every thread so the program doesn't end early. For now the teller and customer functions end after their last print, since serving is added in later sessions.
 
 The concepts I am using are shared memory between threads (no pipes needed), a semaphore as a mutex, a semaphore as a resource limit, and a semaphore as a signal.
+
+# 11-06-2026 03:03am
+ 
+End entry:
+I tested the file as of now by doing:  
+
+python3 bank.py > output.txt              
+grep -c "entering bank" output.txt
+grep -n -E "ready to serve|entering bank" output.txt | head -5
+
+This showed me:
+50
+1:Teller 0 []: ready to serve
+3:Teller 1 []: ready to serve
+5:Teller 2 []: ready to serve
+58:Customer 0 []: entering bank.
+61:Customer 1 []: entering bank.
+
+This verified that the skeleton works. python3 bank.py > output.txt and grep -c "entering bank" gave 50. The first three matches of grep for "ready to serve" or "entering bank" showed no customer enters before all three tellers are ready, and then they did. I also tested the door with a temporary sleep and saw customers enter in bursts of at most two at a time.
+
+What this shows about threads is that they share one memory, so the counter and the semaphores are visible to everyone, and the work is making sure only one thread changes the counter at a time. The turnstile showed me that a semaphore can be a signal as well as a lock.
+
+Next session: I will add the line and teller selection, so customers find a free teller or wait in line, and they introduce themselves. I need to think about how a customer and a teller find each other without two customers picking the same teller.
