@@ -103,3 +103,26 @@ The code I am doing for this session is the line, the teller selection and the i
 - I am adding a TEMPORARY part: after "serving a customer" the teller counts the customer and loops straight back to free. Without this, each teller would only handle one customer and the other 47 would wait forever. A customers_served counter under mutex tells main when all 50 were matched, through the all_served semaphore. The tellers are daemon threads so the program can end while they still wait. Both will be removed in session 5, when the teller learns to stop properly.
 
 The concepts I was aware of here are a semaphore as a counter of available resources (ready_tellers), a semaphore as a signal between two specific threads (customer_arrived), and ordering of operations as a correctness tool (append before release).
+
+# 11-06-2026 14:34pm
+
+End entry:
+I tested the program on 4 lines:
+1. python3 -u bank.py > output.txt
+2. grep -c "selects teller" output.txt          
+3. grep -c "serving a customer" output.txt     
+4. grep "serving a customer" output.txt | sort | uniq -d 
+
+At first, line 1 hung up indefinitely and lines 2 and 3 ad gave an output of 3 and 1 respectively instead of 50. line 4 worked. 
+
+Turned out the issue was The serving logic was inside if first_time, so each teller served only one customer and the rest waited forever, which explained the main file hanging. It caused a deadlock: the remaining customers waited on ready_tellers, but no teller would release it again. The root cause was incorrect indentation.
+
+The fix was simple, I Unindented the serving logic so it runs every loop, letting tellers serve all 50 customers.
+
+The line and teller selection work. I ran python3 bank.py > output.txt and grep gave 50 "selects teller" lines and 50 "serving a customer" lines. The uniq -d check printed nothing. I ran the program 30 times with timeout and none hung. With a temporary sleep in the teller I saw several customers stuck on "selecting a teller." while the tellers were busy, so customers do wait in line.
+
+The only problem I ran into was bad indentation causing deadlock which was fixed by simply unindenting. 
+
+What this shows about threads and semaphores is that a semaphore can stand in for a queue, because blocking on acquire() is waiting in line. But a counter alone doesn't carry information, so I needed the list for "which teller" and the per-teller semaphores for "wake up this teller, not another one".
+
+Next session: I will build the handshake: the teller asks for the transaction, the customer answers with deposit or withdrawal, and the teller learns which one. I need to store each customer's choice somewhere the teller can read it, and add more per-teller semaphores so each step waits for the one before it.
