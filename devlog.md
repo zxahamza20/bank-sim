@@ -89,3 +89,17 @@ The code I am doing for this session is the line, the teller selection and the i
 - free_tellers is a list of the ids of free tellers. The semaphore only counts, so the list is how a customer learns which teller to go to. It is a shared variable, so every append and pop happens inside mutex.
 
 - The teller appends to the list first and releases the semaphore second. If it were the other way around, a customer could get past the semaphore and pop from an empty list. This order guarantees there is always an entry for every successful acquire. 
+
+- pop(0) takes the teller that has been free the longest. The spec says the semaphores don't need to be fair, so the order doesn't matter as much, but it spreads customers over the tellers.
+
+- customer_arrived is a list of three semaphores, one per teller, starting at 0. A teller waits on its own semaphore, and the customer releases the one for the teller it picked. A single shared semaphore would not work, because the wrong teller could wake up.
+
+- current_customer[tid] is where the customer writes its id before releasing customer_arrived[tid]. I don't protect it with the mutex because only one customer at a time owns a given teller, and the semaphore release/acquire makes sure the teller reads the id after it was written.
+
+- The customer prints "getting in line." before ready_tellers.acquire() and "selecting a teller." after it, like the sample, so the gap between the two lines shows how long the customer waited.
+
+- The teller is now a loop, and the bank-opening count only happens the first time (first_time flag). Otherwise a teller would count itself again every time it becomes free and tellers_ready would go above 3.
+
+- I am adding a TEMPORARY part: after "serving a customer" the teller counts the customer and loops straight back to free. Without this, each teller would only handle one customer and the other 47 would wait forever. A customers_served counter under mutex tells main when all 50 were matched, through the all_served semaphore. The tellers are daemon threads so the program can end while they still wait. Both will be removed in session 5, when the teller learns to stop properly.
+
+The concepts I was aware of here are a semaphore as a counter of available resources (ready_tellers), a semaphore as a signal between two specific threads (customer_arrived), and ordering of operations as a correctness tool (append before release).
