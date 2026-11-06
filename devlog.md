@@ -14,3 +14,27 @@ My overall plan is 6 sessions: (1) skeleton, bank opening and door, (2) line and
 
 My plan for this session is to write bank.py with the semaphores, a print helper, the teller and customer threads, the bank-open check, and the door.
 The goal is output where all three tellers say they are ready before any customer enters, and all 50 customers get through the door.
+
+# 11-06-2026 02:16am
+Coding Session starts:
+The code I am doing for this session is bank.py. It declares the semaphores, starts 3 teller threads and 50 customer threads, opens the bank when all tellers are ready, and sends customers through the door.
+
+- I picked the semaphore values from the spec, where door 2, safe 2, manager 1, mutex 1, and bank_open 0. The safe and manager are not used until session 4, but I declared them now so all the semaphores are in one place.
+
+- I made one say() helper that builds every line in the THREAD_TYPE ID [PARTNER]: MSG format. This way the format is written once, and an empty partner gives the [] the sample output shows. I put a print_lock semaphore around the print because two threads printing at the same time can mix their text on one line.
+
+- tellers_ready is a shared counter, so it is protected by mutex. tellers_ready += 1 is a read, add, write, so two tellers could both read 1 and both write 2. Then nobody would ever see 3, the bank would never open, and all 50 customers would wait forever.
+
+- The check tellers_ready == NUM_TELLERS is inside the mutex, so exactly one teller (the last) sees 3 and releases bank_open exactly once.
+
+- Each teller prints "ready to serve" before incrementing the counter. That guarantees all three ready lines appear before any customer can possibly enter.
+
+- bank_open starts at 0 and works as a turnstile. A customer does acquire() then release() right away, so one release by the last teller lets all 50 customers through, because each one passes the "open" signal on to the next. I did this instead of releasing 50 times so the teller code doesn't need to know the customer count.
+
+- The customer picks deposit or withdrawal with random.choice and prints it before sleeping 0 to 100 ms. The spec says every wait gets a line before and a line after, so "wants to perform..." is the before line and "going to bank." is the after line.
+
+- The door is Semaphore(2) and is held while the customer prints "entering bank." and "getting in line." so no more than two customers are in the doorway at once. In session 2 the line logic goes inside this section.
+
+- main() starts the tellers first, then the customers, and joins every thread so the program doesn't end early. For now the teller and customer functions end after their last print, since serving is added in later sessions.
+
+The concepts I am using are shared memory between threads (no pipes needed), a semaphore as a mutex, a semaphore as a resource limit, and a semaphore as a signal.
