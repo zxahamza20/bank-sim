@@ -61,3 +61,21 @@ This verified that the skeleton works. python3 bank.py > output.txt and grep -c 
 What this shows about threads is that they share one memory, so the counter and the semaphores are visible to everyone, and the work is making sure only one thread changes the counter at a time. The turnstile showed me that a semaphore can be a signal as well as a lock.
 
 Next session: I will add the line and teller selection, so customers find a free teller or wait in line, and they introduce themselves. I need to think about how a customer and a teller find each other without two customers picking the same teller.
+
+# 11-06-2026 12:46pm
+
+Session 2:
+Start Entry:
+
+Thoughts since last session in (): 
+(Session 1 gave me the skeleton, the bank opening and the door. This session is the first real interaction between a customer and a teller, which is where the project actually starts. The spec says that if a teller is free the customer goes straight to it, and otherwise waits in line until called. My plan is to avoid writing a separate line data structure at all. A semaphore ready_tellers that starts at 0 and counts free tellers does both jobs. If the value is above 0 the customer's acquire() returns immediately, and if it is 0 the customer blocks, which is waiting in line.)
+
+The semaphore only says how many tellers are free, not which one. So I need a list free_tellers that holds the ids of free tellers, protected by mutex. The order matters here thouh, cause the teller appends its id first and releases the semaphore second, so a customer that gets past the semaphore always finds an id in the list. Then the customer needs a way to tell that specific teller it has arrived, so each teller gets its own semaphore customer_arrived[tid] starting at 0, and a slot current_customer[tid] where the customer writes its id.
+
+The risk I see is the same one as last session, a missing release. If a teller forgets to release ready_tellers, every customer behind it waits forever. A second risk is two customers popping from an empty list, which the semaphore ordering should prevent.
+
+The spec says tellers keep working until no customers are left. I don't want to do the full ending logic yet (that is session 5), so for this session the teller will just register itself as free again right after saying it is serving. This is a temporary shortcut so I can test that all 50 customers get matched.
+
+My plan for this session is to add the line and teller selection, customer introductions, and the teller loop to bank.py.
+
+The goal is 50 "selects teller" lines and 50 "serving a customer" lines, with no customer matched to two tellers and no hang.
