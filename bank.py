@@ -22,14 +22,20 @@ print_lock = threading.Semaphore(1)
  # counts free tellers; customers block here = the line
 ready_tellers = threading.Semaphore(0)  
 # one per teller
-customer_arrived = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]  
+customer_arrived = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]
+# teller -> customer
+teller_asked = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]  
+# customer -> teller     
+customer_answered = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]  
 
 # Shared variables
 tellers_ready = 0
 # ids of tellers waiting for a customer
 free_tellers = []                   
 # which customer is at each teller       
-current_customer = [None] * NUM_TELLERS    
+current_customer = [None] * NUM_TELLERS
+# "deposit" or "withdrawal" for the customer at each teller
+current_kind = [None] * NUM_TELLERS
 
 # TEMPORARY (session 2 only, will replace later in session 5)
 customers_served = 0
