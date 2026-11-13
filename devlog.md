@@ -162,3 +162,13 @@ The code I am doing for this session is adding a semaphore handshake between eac
 - The wording will copy the sample: "asks for transaction" from the teller, "asks for deposit transaction" from the customer, and "handling deposit transaction" from the teller.
 
 The concepts I will use will be semaphores as signals between two specific threads, and using the order of release and acquire to make sure data is written before it is read, so this shared slot will need no lock.
+
+# 11-12-2026 20:10pm
+End entry:
+The handshake works. I ran python3 -u bank.py > output.txt and got 50 "handling" lines and 0 lines with None (expected 50 and 0). I checked customer 2 and the first line said deposit and the handling line said deposit. The program was also tested 30 times with a 5-second timeout per run, and none hung.
+
+The issue I ran into was with the test command. grep -c "asks for transaction" output.txt gave 50 instead of the expected 100 because it only matched the teller lines. The customer lines have "deposit" or "withdrawal" between "for" and "transaction", so they did not match. The 50, 50, 0 results were correct for the original commands. To count both teller and customer requests, the corrected command is grep -Ec "asks for (deposit |withdrawal )?transaction" output.txt, which should give 100.
+
+What this shows about threads and semaphores is that a conversation between two threads is a chain of signals, and each signal is a semaphore at 0 that one side releases and the other acquires. The semaphores also give the order for passing data, so the shared slot is safe without a mutex.
+
+Next session: I will add the manager and the safe. A withdrawal teller must get the manager's permission (one at a time, 5 to 30 ms) before the safe (two at a time, 10 to 50 ms). I need to decide where to acquire and release manager and safe, and I need to remember that every wait gets a print line before and after it.
