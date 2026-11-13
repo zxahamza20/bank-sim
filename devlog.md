@@ -126,3 +126,7 @@ The only problem I ran into was bad indentation causing deadlock which was fixed
 What this shows about threads and semaphores is that a semaphore can stand in for a queue, because blocking on acquire() is waiting in line. But a counter alone doesn't carry information, so I needed the list for "which teller" and the per-teller semaphores for "wake up this teller, not another one".
 
 Next session: I will build the handshake: the teller asks for the transaction, the customer answers with deposit or withdrawal, and the teller learns which one. I need to store each customer's choice somewhere the teller can read it, and add more per-teller semaphores so each step waits for the one before it.
+
+# 11-12-2026 18:10pm
+Session 3:
+Start Entry:
