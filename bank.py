@@ -74,6 +74,15 @@ def teller(tid):
     cid = current_customer[tid]
     say("Teller", tid, f"Customer {cid}", "serving a customer")
 
+    # the handshake: ask, then wait for the answer
+    say("Teller", tid, f"Customer {cid}", "asks for transaction")
+    teller_asked[tid].release()
+    customer_answered[tid].acquire()
+
+    kind = current_kind[tid]
+    say("Teller", tid, f"Customer {cid}", f"handling {kind} transaction")
+    # Placeholder: manager and safe are added in session 4
+
     # TEMPORARY: count the customer and let main know when all 50 were matched
     mutex.acquire()
     customers_served += 1
@@ -112,8 +121,14 @@ def customer(cid):
   say("Customer", cid, f"Teller {tid}", "introduces itself")
    # wake the teller up
   customer_arrived[tid].release()             
-  # Placeholder: transaction handshake is added in session 3
 
+  # the handshake: wait to be asked, then answer
+  teller_asked[tid].acquire()
+  say("Customer", cid, f"Teller {tid}", f"asks for {kind} transaction")
+  current_kind[tid] = kind
+  customer_answered[tid].release()
+  # Placeholder: finishing the transaction and leaving are added in session 5
+  
 def main():
   # TEMPORARY: tellers are daemons so the program can end while they wait
   for i in range(NUM_TELLERS):
