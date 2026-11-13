@@ -140,3 +140,7 @@ The answer carries data (deposit or withdrawal), so I also need a shared variabl
 The risk is the same as before, a missing release. If either side forgets its release, the other waits forever. Another risk is releasing in the wrong order, for example the teller reading current_kind before it was written.
 
 My plan for this session is to add teller_asked, customer_answered and current_kind, then the handshake lines to the teller and the customer in bank.py. The goal is 50 lines each of "asks for transaction" and "handling ... transaction", and every customer's handled kind matching what it said at the start.
+
+# 11-12-2026 18:36pm
+Coding Session stsrts:
+The code I am doing for this session is adding a semaphore handshake between each teller and customer so the teller asks for the transaction type, waits for the customer’s answer, and then handles the chosen deposit or withdrawal.
