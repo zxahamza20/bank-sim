@@ -144,3 +144,21 @@ My plan for this session is to add teller_asked, customer_answered and current_k
 # 11-12-2026 18:36pm
 Coding Session stsrts:
 The code I am doing for this session is adding a semaphore handshake between each teller and customer so the teller asks for the transaction type, waits for the customer’s answer, and then handles the chosen deposit or withdrawal.
+
+- I will add two semaphore lists, teller_asked and customer_answered, one semaphore per teller, all starting at 0. Starting at 0 will make the first acquire() block until the other side releases, so each step will wait for the one before it. This will use the same signal pattern as customer_arrived from session 2.
+
+- They will be per teller because there will be three conversations at once. With one shared teller_asked, a customer talking to teller 2 could be woken by a release meant for teller 0's customer, and it would answer the wrong teller.
+
+- current_kind[tid] will be a shared slot where the customer will put "deposit" or "withdrawal". Like current_customer[tid], I will not protect it with the mutex. Only the two threads of one conversation will touch that slot, and the semaphores will force the order: the customer will write it and then release customer_answered, and the teller will only read it after acquire() returns.
+
+- The order of the customer's last two lines will matter. current_kind[tid] = kind will have to come before customer_answered[tid].release(). If I release first, the teller might wake up and read the slot before it is written.
+
+- The teller will release teller_asked[tid] and then immediately block on customer_answered[tid].acquire(). The customer will do the opposite: it will block on teller_asked[tid].acquire() and then release customer_answered[tid]. Each side's release will be matched by the other side's acquire, so neither will be able to skip a step.
+
+- The customer will reuse the kind variable it will pick at the start of customer(), so the answer will be the same deposit or withdrawal it will announce in "wants to perform a ... transaction". I will use that to test the code: every "handling X" line should match its customer's first line.
+
+- I will move the temporary counting to after the "handling" line. This will prevent main() from stopping before the last handshake lines are printed.
+
+- The wording will copy the sample: "asks for transaction" from the teller, "asks for deposit transaction" from the customer, and "handling deposit transaction" from the teller.
+
+The concepts I will use will be semaphores as signals between two specific threads, and using the order of release and acquire to make sure data is written before it is read, so this shared slot will need no lock.
