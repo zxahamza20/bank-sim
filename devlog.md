@@ -130,3 +130,13 @@ Next session: I will build the handshake: the teller asks for the transaction, t
 # 11-12-2026 18:10pm
 Session 3:
 Start Entry:
+Thoughts since last session in (): 
+(Session 2 works now. My bug was an indentation error in the teller loop, so some of the loop body ended up outside while True and the tellers stopped after one customer and my output was way lesser than needed. That showed me that in this project a hang is usually one missing or misplaced line, and the output only shows where it stopped, not why.)
+
+This session is the conversation between a customer and a teller. In the spec the order is fixed, as in the customer introduces itself, the teller asks for the transaction, the customer answers, and the teller handles it. Each step has to wait for the one before it. A semaphore starting at 0 does that, because the waiting thread blocks on acquire() until the other thread releases. I already have one for the introduction (customer_arrived). I need two more per teller: teller_asked, so the customer waits to be asked before answering, and customer_answered, so the teller waits for the answer before handling it. They have to be per teller, like customer_arrived, because there are three conversations at the same time and a shared semaphore could wake the wrong thread.
+
+The answer carries data (deposit or withdrawal), so I also need a shared variable current_kind[tid]. The ordering is what makes it safe: the customer writes current_kind[tid] first and releases customer_answered[tid] second, and the teller only reads it after acquiring that semaphore. So I do not need the mutex for it, since only the two threads of one conversation ever touch that slot, and the semaphore forces write-before-read.
+
+The risk is the same as before, a missing release. If either side forgets its release, the other waits forever. Another risk is releasing in the wrong order, for example the teller reading current_kind before it was written.
+
+My plan for this session is to add teller_asked, customer_answered and current_kind, then the handshake lines to the teller and the customer in bank.py. The goal is 50 lines each of "asks for transaction" and "handling ... transaction", and every customer's handled kind matching what it said at the start.
