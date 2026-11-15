@@ -187,3 +187,7 @@ The sleeps are the part I have to be careful with. The sleep that represents the
 Only withdrawals go to the manager, but every transaction goes to the safe. The manager comes first, because the spec says the teller gets permission and then goes to the safe. One risk is a deadlock from holding one resource while waiting for another. I plan to release the manager before going to the safe, so a teller never holds the manager while waiting for the safe.
 
 My plan for this session is to add the manager section (withdrawals only) and the safe section to the teller in bank.py, each with the three lines and the right sleep. The goal is that no more than two tellers are ever in the safe at once, no more than one is ever with the manager, and every withdrawal (and only withdrawals) goes to the manager.
+
+# 11-14-2026 21:14pm
+Coding Session stsrts:
+The code I am doing for this session is
