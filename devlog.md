@@ -190,4 +190,24 @@ My plan for this session is to add the manager section (withdrawals only) and th
 
 # 11-14-2026 21:14pm
 Coding Session stsrts:
-The code I am doing for this session is
+The code I am doing for this session is the manager and the safe in bank.py. After the teller learns the transaction type, a withdrawal goes to the manager for permission, and then every transaction goes into the safe.
+
+- Both resources follow the same pattern: print "going to", acquire(), print the "using" line, sleep, print the "done" line, release(). The spec asks for three lines per shared resource, and this pattern gives exactly those, with the going-to line before the wait, the using line after it, and the done line at the end.
+
+- The sleep is between acquire() and release(). Sleeping is how the program represents the work, and it only means anything if the teller holds the resource during that time. If I released first, a third teller could enter the safe while the second was still "working", and the limit of 2 would exist only on paper.
+
+- manager is Semaphore(1), so it works like a lock: only one teller can be with the manager at a time. The sleep is random.randint(5, 30) / 1000, because time.sleep takes seconds and the spec is in milliseconds.
+
+- safe is Semaphore(2), a counting semaphore. The first two tellers acquire it immediately and a third one blocks on acquire() until one of them releases. The sleep is random.randint(10, 50) / 1000.
+
+- Only withdrawals go to the manager (if kind == "withdrawal"), but every transaction goes to the safe. The teller does the manager first and the safe second, as the spec orders them.
+
+- The teller releases the manager before going to the safe. Holding the manager while waiting for the safe would block the other tellers' withdrawals for no reason. It also avoids a deadlock pattern where a thread holds one resource while waiting for another.
+
+- say() holds print_lock only while printing, and the sleeps happen outside it. If a teller slept while holding print_lock, every other thread would freeze until it woke up.
+
+- The message wording copies the sample: "going to the manager", "getting manager's permission", "got manager's permission", "going to safe", "enter safe", "leaving safe".
+
+- The temporary counting moved to after the safe. The teller still loops straight back to free after leaving the safe. Informing the customer and waiting for them to leave is session 5.
+
+The concepts I was aware of were a semaphore as a lock (manager), a semaphore as a counter of how many may be inside (safe), holding a resource while doing work, and avoiding holding one resource while waiting for another.
