@@ -172,3 +172,18 @@ The issue I ran into was with the test command. grep -c "asks for transaction" o
 What this shows about threads and semaphores is that a conversation between two threads is a chain of signals, and each signal is a semaphore at 0 that one side releases and the other acquires. The semaphores also give the order for passing data, so the shared slot is safe without a mutex.
 
 Next session: I will add the manager and the safe. A withdrawal teller must get the manager's permission (one at a time, 5 to 30 ms) before the safe (two at a time, 10 to 50 ms). I need to decide where to acquire and release manager and safe, and I need to remember that every wait gets a print line before and after it.
+
+# 11-14-2026 20:47pm
+Session 4:
+Start Entry:
+
+Thoughts since last session in (): 
+(The handshake works, so the teller now knows whether the customer wants a deposit or a withdrawal. This session is the first time the semaphores protect real shared resources instead of passing signals. The manager and the safe were declared in session 1 with values 1 and 2 but never used.)
+
+Before this session, my semaphores were signals (start at 0) and a mutex (value 1). Now I need the third kind, a counting semaphore that limits how many threads can be inside at once. The safe is Semaphore(2): the first two acquire() calls go through, and a third blocks until someone calls release(). The manager is Semaphore(1), which works like a lock. The spec says every wait needs a line before and a line after, and each shared resource needs three lines: going to it, using it, and done with it. The sample output shows what that looks like: "going to the manager", "getting manager's permission", "got manager's permission", and "going to safe", "enter safe", "leaving safe".
+
+The sleeps are the part I have to be careful with. The sleep that represents the work has to happen while the teller holds the semaphore. If I release before sleeping, the limit would be meaningless because the "work" would take place outside the resource. I also do not want to sleep while holding print_lock, because that would freeze every thread that wants to print.
+
+Only withdrawals go to the manager, but every transaction goes to the safe. The manager comes first, because the spec says the teller gets permission and then goes to the safe. One risk is a deadlock from holding one resource while waiting for another. I plan to release the manager before going to the safe, so a teller never holds the manager while waiting for the safe.
+
+My plan for this session is to add the manager section (withdrawals only) and the safe section to the teller in bank.py, each with the three lines and the right sleep. The goal is that no more than two tellers are ever in the safe at once, no more than one is ever with the manager, and every withdrawal (and only withdrawals) goes to the manager.
