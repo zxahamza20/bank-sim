@@ -211,3 +211,13 @@ The code I am doing for this session is the manager and the safe in bank.py. Aft
 - The temporary counting moved to after the safe. The teller still loops straight back to free after leaving the safe. Informing the customer and waiting for them to leave is session 5.
 
 The concepts I was aware of were a semaphore as a lock (manager), a semaphore as a counter of how many may be inside (safe), holding a resource while doing work, and avoiding holding one resource while waiting for another.
+
+# 11-14-2026 212:22pm
+End entry:
+The manager and safe work. I ran python3 bank.py > output.txt and got 22 "going to the manager" lines and 22 "handling withdrawal" lines, which match. There were 50 each of "going to safe", "enter safe" and "leaving safe". Going down the safe lines with a running count the highest was 2, and for the manager the highest was 1. In the negative test with Semaphore(3) I saw three tellers in the safe at the same time, so the semaphore is what limits the safe. I ran the program 30 times with timeout and none hung.
+
+I did not really run into any problems this time.
+
+What this shows about semaphores: the value of the semaphore is the limit. Value 1 makes a lock, value 2 allows two threads inside, and the thread that cannot get in simply blocks on acquire() until someone releases. The sleep inside the held section is what makes the limit visible in the output.
+
+Next session: I will finish the cycle. The teller will tell the customer the transaction is finished and wait for the customer to leave, then become free again for the next customer. After all 50 customers have left, the tellers go home and the bank closes. That will replace the temporary counting and the daemon threads from session 2.
