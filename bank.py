@@ -81,7 +81,23 @@ def teller(tid):
 
     kind = current_kind[tid]
     say("Teller", tid, f"Customer {cid}", f"handling {kind} transaction")
-    # Placeholder: manager and safe are added in session 4
+    # withdrawals need the manager's permission, one teller at a time
+    if kind == "withdrawal":
+      say("Teller", tid, f"Customer {cid}", "going to the manager")
+      manager.acquire()
+      say("Teller", tid, f"Customer {cid}", "getting manager's permission")
+      time.sleep(random.randint(5, 30) / 1000)       # 5 - 30 ms
+      say("Teller", tid, f"Customer {cid}", "got manager's permission")
+      manager.release()
+
+    # every transaction goes through the safe, two tellers at a time
+    say("Teller", tid, f"Customer {cid}", "going to safe")
+    safe.acquire()
+    say("Teller", tid, f"Customer {cid}", "enter safe")
+    time.sleep(random.randint(10, 50) / 1000)          # 10 - 50 ms
+    say("Teller", tid, f"Customer {cid}", "leaving safe")
+    safe.release()
+    # Placeholder: informing the customer and waiting for them to leave is session 5
 
     # TEMPORARY: count the customer and let main know when all 50 were matched
     mutex.acquire()
