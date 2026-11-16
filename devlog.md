@@ -1,10 +1,10 @@
-# 11-06-2026 01:52am
+# 11-06-2026 01:52
 
 Session 1:
 Start Entry:
 This is my first entry for Project 2. The project is a bank simulation in a single program. 3 teller threads and 50 customer threads are involved that coordinate using semaphores. The bank opens only when all three tellers are ready, customers enter through the door two at a time, tellers enter the safe two at a time, and only one teller at a time can talk to the manager (for withdrawals). The bank closes once all 50 customers have been served and have left.
 
-The big difference from Project 1 is that threads share memory. In Project 1 every program had its own memory, so I needed pipes to send anything between them. Here every thread can see the same variables, so I don't need to pass messages, but I do need to stop threads from interfering with each other. My understanding of a semaphore is that it is a counter with acquire (wait, which blocks if the value is 0) and release (signal). I can see three uses here, where value 1 as a mutex, value N to limit how many threads can use something at once (door 2, safe 2, manager 1), and value 0 as a signal where one thread waits until another says something happened.
+The big difference from Project 1 is that threads share memory. In Project 1 every program had its own memory, so I needed pipes to send anything between them. Here every thread can see the same variables, so I don't need to pass messages, but I do need to stop threads from interfering with each other. My understanding of a semaphore is that it is a counter with acquire (wait, which blocks if the value is 0) and release (signal). I can see three uses here, where value 1 acts as a mutex, value N to limit how many threads can use something at once (door 2, safe 2, manager 1), and value 0 as a signal where one thread waits until another says something happened.
 
 The biggest risks I see are race conditions and deadlock. A race condition is when two threads change a shared variable at once, since something like tellers_ready += 1 is not a single step. A deadlock is when a thread waits on a semaphore that nobody will ever release. In Project 1 my deadlock came from a missing flush, and here it will come from a missing release.
 
@@ -15,7 +15,7 @@ My overall plan is 6 sessions: (1) skeleton, bank opening and door, (2) line and
 My plan for this session is to write bank.py with the semaphores, a print helper, the teller and customer threads, the bank-open check, and the door.
 The goal is output where all three tellers say they are ready before any customer enters, and all 50 customers get through the door.
 
-# 11-06-2026 02:16am
+# 11-06-2026 02:16
 Coding Session starts:
 The code I am doing for this session is bank.py. It declares the semaphores, starts 3 teller threads and 50 customer threads, opens the bank when all tellers are ready, and sends customers through the door.
 
@@ -33,13 +33,13 @@ The code I am doing for this session is bank.py. It declares the semaphores, sta
 
 - The customer picks deposit or withdrawal with random.choice and prints it before sleeping 0 to 100 ms. The spec says every wait gets a line before and a line after, so "wants to perform..." is the before line and "going to bank." is the after line.
 
-- The door is Semaphore(2) and is held while the customer prints "entering bank." and "getting in line." so no more than two customers are in the doorway at once. In session 2 the line logic goes inside this section.
+- The door is Semaphore(2) and is held while the customer prints "entering bank." and "getting in line." so no more than two customers are in the doorway at once. In session 2 the customer releases the door before waiting for a teller.
 
 - main() starts the tellers first, then the customers, and joins every thread so the program doesn't end early. For now the teller and customer functions end after their last print, since serving is added in later sessions.
 
 The concepts I am using are shared memory between threads (no pipes needed), a semaphore as a mutex, a semaphore as a resource limit, and a semaphore as a signal.
 
-# 11-06-2026 03:03am
+# 11-06-2026 03:03
  
 End entry:
 I tested the file as of now by doing:  
@@ -62,7 +62,7 @@ What this shows about threads is that they share one memory, so the counter and 
 
 Next session: I will add the line and teller selection, so customers find a free teller or wait in line, and they introduce themselves. I need to think about how a customer and a teller find each other without two customers picking the same teller.
 
-# 11-06-2026 12:46pm
+# 11-06-2026 12:46
 
 Session 2:
 Start Entry:
@@ -70,7 +70,7 @@ Start Entry:
 Thoughts since last session in (): 
 (Session 1 gave me the skeleton, the bank opening and the door. This session is the first real interaction between a customer and a teller, which is where the project actually starts. The spec says that if a teller is free the customer goes straight to it, and otherwise waits in line until called. My plan is to avoid writing a separate line data structure at all. A semaphore ready_tellers that starts at 0 and counts free tellers does both jobs. If the value is above 0 the customer's acquire() returns immediately, and if it is 0 the customer blocks, which is waiting in line.)
 
-The semaphore only says how many tellers are free, not which one. So I need a list free_tellers that holds the ids of free tellers, protected by mutex. The order matters here thouh, cause the teller appends its id first and releases the semaphore second, so a customer that gets past the semaphore always finds an id in the list. Then the customer needs a way to tell that specific teller it has arrived, so each teller gets its own semaphore customer_arrived[tid] starting at 0, and a slot current_customer[tid] where the customer writes its id.
+The semaphore only says how many tellers are free, not which one. So I need a list free_tellers that holds the ids of free tellers, protected by mutex. The order matters here though, because the teller appends its id first and releases the semaphore second, so a customer that gets past the semaphore always finds an id in the list. Then the customer needs a way to tell that specific teller it has arrived, so each teller gets its own semaphore customer_arrived[tid] starting at 0, and a slot current_customer[tid] where the customer writes its id.
 
 The risk I see is the same one as last session, a missing release. If a teller forgets to release ready_tellers, every customer behind it waits forever. A second risk is two customers popping from an empty list, which the semaphore ordering should prevent.
 
@@ -80,7 +80,7 @@ My plan for this session is to add the line and teller selection, customer intro
 
 The goal is 50 "selects teller" lines and 50 "serving a customer" lines, with no customer matched to two tellers and no hang.
 
-# 11-06-2026 13:14pm
+# 11-06-2026 13:14
 Coding session starts:
 The code I am doing for this session is the line, the teller selection and the introduction in bank.py. A customer now goes through the door, waits for a free teller, picks one, and introduces itself. The teller wakes up and says it is serving that customer.
 
@@ -104,7 +104,7 @@ The code I am doing for this session is the line, the teller selection and the i
 
 The concepts I was aware of here are a semaphore as a counter of available resources (ready_tellers), a semaphore as a signal between two specific threads (customer_arrived), and ordering of operations as a correctness tool (append before release).
 
-# 11-06-2026 14:34pm
+# 11-06-2026 14:34
 
 End entry:
 I tested the program on 4 lines:
@@ -113,13 +113,13 @@ I tested the program on 4 lines:
 3. grep -c "serving a customer" output.txt     
 4. grep "serving a customer" output.txt | sort | uniq -d 
 
-At first, line 1 hung up indefinitely and lines 2 and 3 ad gave an output of 3 and 1 respectively instead of 50. line 4 worked. 
+At first, line 1 hung up indefinitely and lines 2 and 3 gave an output of 3 and 1 respectively instead of 50. Line 4 printed no duplicates.
 
-Turned out the issue was The serving logic was inside if first_time, so each teller served only one customer and the rest waited forever, which explained the main file hanging. It caused a deadlock: the remaining customers waited on ready_tellers, but no teller would release it again. The root cause was incorrect indentation.
+Turned out the issue was that the serving logic was inside if first_time, so each teller served only one customer and the rest waited forever, which explained the main file hanging. It caused a deadlock: the remaining customers waited on ready_tellers, but no teller would release it again. The root cause was incorrect indentation.
 
-The fix was simple, I Unindented the serving logic so it runs every loop, letting tellers serve all 50 customers.
+The fix was simple, I unindented the serving logic so it runs every loop, letting tellers serve all 50 customers.
 
-The line and teller selection work. I ran python3 bank.py > output.txt and grep gave 50 "selects teller" lines and 50 "serving a customer" lines. The uniq -d check printed nothing. I ran the program 30 times with timeout and none hung. With a temporary sleep in the teller I saw several customers stuck on "selecting a teller." while the tellers were busy, so customers do wait in line.
+The line and teller selection work. I ran python3 bank.py > output.txt and grep gave 50 "selects teller" lines and 50 "serving a customer" lines. The uniq -d check printed nothing. I ran the program 30 times with timeout and none hung. With a temporary sleep in the teller I saw several customers stuck after "getting in line." while the tellers were busy, so customers do wait in line.
 
 The only problem I ran into was bad indentation causing deadlock which was fixed by simply unindenting. 
 
@@ -127,11 +127,11 @@ What this shows about threads and semaphores is that a semaphore can stand in fo
 
 Next session: I will build the handshake: the teller asks for the transaction, the customer answers with deposit or withdrawal, and the teller learns which one. I need to store each customer's choice somewhere the teller can read it, and add more per-teller semaphores so each step waits for the one before it.
 
-# 11-12-2026 18:10pm
+# 11-12-2026 18:10
 Session 3:
 Start Entry:
 Thoughts since last session in (): 
-(Session 2 works now. My bug was an indentation error in the teller loop, so some of the loop body ended up outside while True and the tellers stopped after one customer and my output was way lesser than needed. That showed me that in this project a hang is usually one missing or misplaced line, and the output only shows where it stopped, not why.)
+(Session 2 works now. My bug was an indentation error in the teller loop, so the serving logic ended up inside if first_time and the tellers stopped after one customer and my output was much less than needed. That showed me that in this project a hang is usually one missing or misplaced line, and the output only shows where it stopped, not why.)
 
 This session is the conversation between a customer and a teller. In the spec the order is fixed, as in the customer introduces itself, the teller asks for the transaction, the customer answers, and the teller handles it. Each step has to wait for the one before it. A semaphore starting at 0 does that, because the waiting thread blocks on acquire() until the other thread releases. I already have one for the introduction (customer_arrived). I need two more per teller: teller_asked, so the customer waits to be asked before answering, and customer_answered, so the teller waits for the answer before handling it. They have to be per teller, like customer_arrived, because there are three conversations at the same time and a shared semaphore could wake the wrong thread.
 
@@ -141,8 +141,8 @@ The risk is the same as before, a missing release. If either side forgets its re
 
 My plan for this session is to add teller_asked, customer_answered and current_kind, then the handshake lines to the teller and the customer in bank.py. The goal is 50 lines each of "asks for transaction" and "handling ... transaction", and every customer's handled kind matching what it said at the start.
 
-# 11-12-2026 18:36pm
-Coding Session stsrts:
+# 11-12-2026 18:36
+Coding Session starts:
 The code I am doing for this session is adding a semaphore handshake between each teller and customer so the teller asks for the transaction type, waits for the customer’s answer, and then handles the chosen deposit or withdrawal.
 
 - I will add two semaphore lists, teller_asked and customer_answered, one semaphore per teller, all starting at 0. Starting at 0 will make the first acquire() block until the other side releases, so each step will wait for the one before it. This will use the same signal pattern as customer_arrived from session 2.
@@ -163,22 +163,22 @@ The code I am doing for this session is adding a semaphore handshake between eac
 
 The concepts I will use will be semaphores as signals between two specific threads, and using the order of release and acquire to make sure data is written before it is read, so this shared slot will need no lock.
 
-# 11-12-2026 20:10pm
+# 11-12-2026 20:10
 End entry:
 The handshake works. I ran python3 -u bank.py > output.txt and got 50 "handling" lines and 0 lines with None (expected 50 and 0). I checked customer 2 and the first line said deposit and the handling line said deposit. The program was also tested 30 times with a 5-second timeout per run, and none hung.
 
-The issue I ran into was with the test command. grep -c "asks for transaction" output.txt gave 50 instead of the expected 100 because it only matched the teller lines. The customer lines have "deposit" or "withdrawal" between "for" and "transaction", so they did not match. The 50, 50, 0 results were correct for the original commands. To count both teller and customer requests, the corrected command is grep -Ec "asks for (deposit |withdrawal )?transaction" output.txt, which should give 100.
+The issue I ran into was with the test command. grep -c "asks for transaction" output.txt gave 50 instead of the expected 100 because it only matched the teller lines. The customer lines have "deposit" or "withdrawal" between "for" and "transaction", so they did not match. The teller-request count of 50, handling count of 50, and None count of 0 were correct. To count both teller and customer requests, the corrected command is grep -Ec "asks for (deposit |withdrawal )?transaction" output.txt, which should give 100.
 
 What this shows about threads and semaphores is that a conversation between two threads is a chain of signals, and each signal is a semaphore at 0 that one side releases and the other acquires. The semaphores also give the order for passing data, so the shared slot is safe without a mutex.
 
 Next session: I will add the manager and the safe. A withdrawal teller must get the manager's permission (one at a time, 5 to 30 ms) before the safe (two at a time, 10 to 50 ms). I need to decide where to acquire and release manager and safe, and I need to remember that every wait gets a print line before and after it.
 
-# 11-14-2026 20:47pm
+# 11-14-2026 20:47
 Session 4:
 Start Entry:
 
 Thoughts since last session in (): 
-(The handshake works, so the teller now knows whether the customer wants a deposit or a withdrawal. This session is the first time the semaphores protect real shared resources instead of passing signals. The manager and the safe were declared in session 1 with values 1 and 2 but never used.)
+(The handshake works, so the teller now knows whether the customer wants a deposit or a withdrawal. This session adds the manager and safe as shared resources protected by semaphores, building on the door limit and mutex from session 1. The manager and the safe were declared in session 1 with values 1 and 2 but never used.)
 
 Before this session, my semaphores were signals (start at 0) and a mutex (value 1). Now I need the third kind, a counting semaphore that limits how many threads can be inside at once. The safe is Semaphore(2): the first two acquire() calls go through, and a third blocks until someone calls release(). The manager is Semaphore(1), which works like a lock. The spec says every wait needs a line before and a line after, and each shared resource needs three lines: going to it, using it, and done with it. The sample output shows what that looks like: "going to the manager", "getting manager's permission", "got manager's permission", and "going to safe", "enter safe", "leaving safe".
 
@@ -188,8 +188,8 @@ Only withdrawals go to the manager, but every transaction goes to the safe. The 
 
 My plan for this session is to add the manager section (withdrawals only) and the safe section to the teller in bank.py, each with the three lines and the right sleep. The goal is that no more than two tellers are ever in the safe at once, no more than one is ever with the manager, and every withdrawal (and only withdrawals) goes to the manager.
 
-# 11-14-2026 21:14pm
-Coding Session stsrts:
+# 11-14-2026 21:14
+Coding Session starts:
 The code I am doing for this session is the manager and the safe in bank.py. After the teller learns the transaction type, a withdrawal goes to the manager for permission, and then every transaction goes into the safe.
 
 - Both resources follow the same pattern: print "going to", acquire(), print the "using" line, sleep, print the "done" line, release(). The spec asks for three lines per shared resource, and this pattern gives exactly those, with the going-to line before the wait, the using line after it, and the done line at the end.
@@ -212,7 +212,7 @@ The code I am doing for this session is the manager and the safe in bank.py. Aft
 
 The concepts I was aware of were a semaphore as a lock (manager), a semaphore as a counter of how many may be inside (safe), holding a resource while doing work, and avoiding holding one resource while waiting for another.
 
-# 11-14-2026 212:22pm
+# 11-14-2026 22:22
 End entry:
 The manager and safe work. I ran python3 bank.py > output.txt and got 22 "going to the manager" lines and 22 "handling withdrawal" lines, which match. There were 50 each of "going to safe", "enter safe" and "leaving safe". Going down the safe lines with a running count the highest was 2, and for the manager the highest was 1. In the negative test with Semaphore(3) I saw three tellers in the safe at the same time, so the semaphore is what limits the safe. I ran the program 30 times with timeout and none hung.
 
@@ -222,11 +222,11 @@ What this shows about semaphores: the value of the semaphore is the limit. Value
 
 Next session: I will finish the cycle. The teller will tell the customer the transaction is finished and wait for the customer to leave, then become free again for the next customer. After all 50 customers have left, the tellers go home and the bank closes. That will replace the temporary counting and the daemon threads from session 2.
 
-# 11-15-2026 18:06pm
+# 11-15-2026 18:06
 Session 5:
 Start Entry:
 Thoughts since last session in (): 
-(The manager and the safe work, and I verified the limits by counting how many tellers were inside at once, and by changing the safe to 3 to see the limit break. What is left from the spec is step 8 and 9 of the teller (inform the customer and wait for the customer to leave), the customer leaving, and closing the bank after all 50 customers have left. I also have to remove the two temporary hacks from session 2, the all_served semaphore and the daemon threads. This session finishes the code, and then I spend tsome time testing, writing the README and cleaning up the repo.)
+(The manager and the safe work, and I verified the limits by counting how many tellers were inside at once, and by changing the safe to 3 to see the limit break. What is left from the spec is steps 8 and 9 of the teller (inform the customer and wait for the customer to leave), the customer leaving, and closing the bank after all 50 customers have left. I also have to remove the two temporary hacks from session 2, the all_served semaphore and the daemon threads. This session finishes the code, and then I spend some time testing, writing the README and cleaning up the repo.)
 
 The finish handshake works like the earlier ones. The teller releases transaction_done[tid] and the customer waits on it, so a customer cannot leave before the teller says it is done. Then the customer releases customer_left[tid] and the teller waits on it, so the teller cannot call the next customer before this one has left. Both are semaphores at 0 and per teller, for the same reason as before.
 
@@ -234,9 +234,9 @@ The harder part is closing. Right now a teller loops forever. The tellers that a
 
 The risks are a teller that never wakes up (a hang at the very end, after all the output looks done) and a teller that wakes up and tries to serve customer None. I will watch for both.
 
-My plan for this session is to finish the remainig coding part and write a check that compares my output with the sample, runs many times to look for hangs, verifies that the limits hold, and then write the README and make sure git status is clean. The goal is that the program ends by itself with "The bank closes for the day." as the last line, every customer leaves, and no run hangs.
+My plan for this session is to finish the remaining coding part and write a check that compares my output with the sample, runs many times to look for hangs, verifies that the limits hold, and then write the README and make sure git status is clean. The goal is that the program ends by itself with "The bank closes for the day." as the last line, every customer leaves, and no run hangs.
 
-# 11-15-2026 18:33pm
+# 11-15-2026 18:33
 Coding session starts:
 The code I will work on for this part of the session will be the end of the cycle in bank.py: the teller will inform the customer, the customer will leave, the teller will wait for them to leave, and the bank will close after the 50th customer.
 
@@ -246,7 +246,7 @@ The code I will work on for this part of the session will be the end of the cycl
 
 - The teller will wait for customer_left before it loops back to "ready to serve". Without it, the teller could put itself on the free list while its old customer was still talking, and the next customer could be introduced to a teller that is not ready.
 
-- Closing the bank will be the hard part. An idle teller will be blocked on customer_arrived[tid], and after customer 50 nobody will release that again. So customers_served will be counted inside mutex after each customer leaves, and the teller that sees it reach 50 will set the shared flag closing and release customer_arrived for all three tellers, itself included.
+- Closing the bank will be the hard part. An idle teller will be blocked on customer_arrived[tid], and after the last customer nobody will release that again. So customers_served will be counted inside mutex after each customer leaves, and the teller that sees it reach 50 will set the shared flag closing and release customer_arrived for all three tellers, itself included.
 
 - A teller will check closing right after customer_arrived.acquire(). If it is set, there will be no customer, so it will break out of the loop and print "leaving for the day". The flag will be written inside mutex before the releases, and the other tellers will read it only after their acquire() returns, so they will always see it set. The teller that wakes the others will also release its own semaphore, so it will take the same path out instead of needing a special case.
 
@@ -258,15 +258,15 @@ The code I will work on for this part of the session will be the end of the cycl
 
 The concepts I will use will be semaphores as signals in both directions of one conversation, a shared flag plus a wake-up release to end threads that are blocked, and why a thread will have to be woken to be told that there is nothing left to do.
 
-# 11-15-2026 20:20pm
+# 11-15-2026 20:20
 End entry:
-The whole project works in the checks I ran. I added the finish-and-leave handshake, replaced the temporary all_served semaphore and daemon threads with the closing flag and wake-up signals, and made main() join every customer and teller before printing the closing message. I also cleaned up bank.py and updated the README.
+The whole project works in the checks I ran. I added the finish-and-leave handshake, replaced the temporary all_served semaphore and daemon threads with the closing flag and wake-up signals, and made main() join every customer and teller before printing the closing message. I also cleaned up bank.py and updated the README. I combined the testing and README work originally planned for session 6 into this session.
 
 I ran the program 100 times with a 10-second timeout for each run, and none hung. Every run had 50 "leaves the bank" lines, 50 "finishes" lines and 3 "leaving for the day" lines, as expected. The last line was always "The bank closes for the day.". I checked the safe and the manager by keeping a running count, and the highest was 2 and 1. I also checked every customer's "leaves teller" line came after the teller's "finishes" line. I compared a fresh run with sample-ouput.txt after replacing numbers with N and comparing message types and counts rather than thread order. My run had 23 deposits and 27 withdrawals, while the sample had 19 deposits and 31 withdrawals, so the transaction-specific counts and manager visits differed. My "introduces itself" lines had a colon after the bracket, while the sample omitted it. The sample also had a malformed "wait for customer to leave" line with extra text and only 49 "enter safe" lines; my run had 50 correctly formatted lines for each. The sample had 1152 nonblank lines and my run had 1141. The other message types matched, and the order differed because the threads ran concurrently.
 
 No simulation problems showed up during these checks. The tellers woke up and exited at closing, and no customer left its teller before the transaction finished.
 
-What this shows about threads and semaphores is that the whole project is three patterns combined. A semaphore as a lock (mutex and manager), a semaphore as a counter of how many may be inside (door and safe), and a semaphore at 0 as a signal, which is how every handshake step and the line itself are done. The threads share memory, so there are no pipes to pass data through, but I have to control the order in which they read and write it, and the semaphores do that.
+What this shows about threads and semaphores is that the whole project is three patterns combined. A semaphore as a lock (mutex and manager), a semaphore as a counter of available resources (door, safe, and ready_tellers), and a semaphore starting at 0 as a signal, which is how every handshake step is done. The threads share memory, so there are no pipes to pass data through, but I have to control the order in which they read and write it, and the semaphores do that.
 
 Compared to project 1, processes had separate memory and needed pipes, and the hangs came from a missing flush. Threads share memory and need semaphores, and the hangs come from a missing release or a missing wake-up. In both, the program stops with no error and I had to find where by looking at the last line printed.
 
