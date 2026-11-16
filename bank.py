@@ -101,7 +101,11 @@ def teller(tid):
     time.sleep(random.randint(10, 50) / 1000)          # 10 - 50 ms
     say("Teller", tid, f"Customer {cid}", "leaving safe")
     safe.release()
-    # Placeholder: informing the customer and waiting for them to leave is session 5
+    # inform the customer, then wait for them to leave
+    say("Teller", tid, f"Customer {cid}", f"finishes {kind} transaction.")
+    transaction_done[tid].release()
+    say("Teller", tid, f"Customer {cid}", "wait for customer to leave.")
+    customer_left[tid].acquire()
 
     # TEMPORARY: count the customer and let main know when all 50 were matched
     mutex.acquire()
@@ -147,7 +151,12 @@ def customer(cid):
   say("Customer", cid, f"Teller {tid}", f"asks for {kind} transaction")
   current_kind[tid] = kind
   customer_answered[tid].release()
-  # Placeholder: finishing the transaction and leaving are added in session 5
+  # wait for the teller to finish, then leave
+  transaction_done[tid].acquire()
+  say("Customer", cid, f"Teller {tid}", "leaves teller")
+  customer_left[tid].release()
+  say("Customer", cid, "", "goes to door")
+  say("Customer", cid, "", "leaves the bank")
   
 def main():
   # TEMPORARY: tellers are daemons so the program can end while they wait
