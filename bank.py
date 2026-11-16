@@ -27,6 +27,10 @@ customer_arrived = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]
 teller_asked = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]  
 # customer -> teller     
 customer_answered = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]  
+# teller -> customer: transaction finished
+transaction_done = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]
+# customer -> teller: customer has left
+customer_left = [threading.Semaphore(0) for _ in range(NUM_TELLERS)]
 
 # Shared variables
 tellers_ready = 0
