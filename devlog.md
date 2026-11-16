@@ -221,3 +221,18 @@ I did not really run into any problems this time.
 What this shows about semaphores: the value of the semaphore is the limit. Value 1 makes a lock, value 2 allows two threads inside, and the thread that cannot get in simply blocks on acquire() until someone releases. The sleep inside the held section is what makes the limit visible in the output.
 
 Next session: I will finish the cycle. The teller will tell the customer the transaction is finished and wait for the customer to leave, then become free again for the next customer. After all 50 customers have left, the tellers go home and the bank closes. That will replace the temporary counting and the daemon threads from session 2.
+
+# 11-15-2026 18:06pm
+Session 5:
+Start Entry:
+Thoughts since last session in (): 
+(The manager and the safe work, and I verified the limits by counting how many tellers were inside at once, and by changing the safe to 3 to see the limit break. What is left from the spec is step 8 and 9 of the teller (inform the customer and wait for the customer to leave), the customer leaving, and closing the bank after all 50 customers have left. I also have to remove the two temporary hacks from session 2, the all_served semaphore and the daemon threads. This session finishes the code, and then I spend tsome time testing, writing the README and cleaning up the repo.)
+
+The finish handshake works like the earlier ones. The teller releases transaction_done[tid] and the customer waits on it, so a customer cannot leave before the teller says it is done. Then the customer releases customer_left[tid] and the teller waits on it, so the teller cannot call the next customer before this one has left. Both are semaphores at 0 and per teller, for the same reason as before.
+
+The harder part is closing. Right now a teller loops forever. The tellers that are idle at the end are blocked on customer_arrived[tid], and nobody will ever release it, because there are no more customers. My plan is a shared flag closing plus a wake-up so when the teller that served the last customer sees that customers_served reached 50, it sets closing and releases customer_arrived for every teller. A teller that wakes up checks closing before doing anything else, and if it is set, it leaves its loop and prints that it is leaving for the day. The count and the flag are shared variables, so they are updated inside mutex.
+
+The risks are a teller that never wakes up (a hang at the very end, after all the output looks done) and a teller that wakes up and tries to serve customer None. I will watch for both.
+
+My plan for this session is to finish the remainig coding part and write a check that compares my output with the sample, runs many times to look for hangs, verifies that the limits hold, and then write the README and make sure git status is clean. The goal is that the program ends by itself with "The bank closes for the day." as the last line, every customer leaves, and no run hangs.
+
