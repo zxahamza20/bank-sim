@@ -257,3 +257,17 @@ The code I will work on for this part of the session will be the end of the cycl
 - The customer will leave with "goes to door" and "leaves the bank". The sample shows these lines without any door semaphore, and the spec only limits entering to two at a time, so I will not add one for leaving.
 
 The concepts I will use will be semaphores as signals in both directions of one conversation, a shared flag plus a wake-up release to end threads that are blocked, and why a thread will have to be woken to be told that there is nothing left to do.
+
+# 11-15-2026 20:20pm
+End entry:
+The whole project works in the checks I ran. I added the finish-and-leave handshake, replaced the temporary all_served semaphore and daemon threads with the closing flag and wake-up signals, and made main() join every customer and teller before printing the closing message. I also cleaned up bank.py and updated the README.
+
+I ran the program 100 times with a 10-second timeout for each run, and none hung. Every run had 50 "leaves the bank" lines, 50 "finishes" lines and 3 "leaving for the day" lines, as expected. The last line was always "The bank closes for the day.". I checked the safe and the manager by keeping a running count, and the highest was 2 and 1. I also checked every customer's "leaves teller" line came after the teller's "finishes" line. I compared a fresh run with sample-ouput.txt after replacing numbers with N and comparing message types and counts rather than thread order. My run had 23 deposits and 27 withdrawals, while the sample had 19 deposits and 31 withdrawals, so the transaction-specific counts and manager visits differed. My "introduces itself" lines had a colon after the bracket, while the sample omitted it. The sample also had a malformed "wait for customer to leave" line with extra text and only 49 "enter safe" lines; my run had 50 correctly formatted lines for each. The sample had 1152 nonblank lines and my run had 1141. The other message types matched, and the order differed because the threads ran concurrently.
+
+No simulation problems showed up during these checks. The tellers woke up and exited at closing, and no customer left its teller before the transaction finished.
+
+What this shows about threads and semaphores is that the whole project is three patterns combined. A semaphore as a lock (mutex and manager), a semaphore as a counter of how many may be inside (door and safe), and a semaphore at 0 as a signal, which is how every handshake step and the line itself are done. The threads share memory, so there are no pipes to pass data through, but I have to control the order in which they read and write it, and the semaphores do that.
+
+Compared to project 1, processes had separate memory and needed pipes, and the hangs came from a missing flush. Threads share memory and need semaphores, and the hangs come from a missing release or a missing wake-up. In both, the program stops with no error and I had to find where by looking at the last line printed.
+
+This is the last session. What I would do differently is write a small checker earlier, because reading 1100 lines by eye is slow.
