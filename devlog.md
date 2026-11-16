@@ -238,3 +238,22 @@ My plan for this session is to finish the remainig coding part and write a check
 
 # 11-15-2026 18:33pm
 Coding session starts:
+The code I will work on for this part of the session will be the end of the cycle in bank.py: the teller will inform the customer, the customer will leave, the teller will wait for them to leave, and the bank will close after the 50th customer.
+
+- I will add two more per-teller semaphores, transaction_done and customer_left, both starting at 0. transaction_done will make the customer wait until the teller says the transaction is finished, and customer_left will make the teller wait until the customer has left. They will be per teller because three conversations will run at the same time, as with the earlier signals.
+
+- The teller will print "finishes X transaction." before it releases transaction_done, and the customer will print "leaves teller" before it releases customer_left. The print will come first in both places so the log will show the cause before the effect. That way a customer's "leaves teller" line will not appear before the teller's "finishes" line.
+
+- The teller will wait for customer_left before it loops back to "ready to serve". Without it, the teller could put itself on the free list while its old customer was still talking, and the next customer could be introduced to a teller that is not ready.
+
+- Closing the bank will be the hard part. An idle teller will be blocked on customer_arrived[tid], and after customer 50 nobody will release that again. So customers_served will be counted inside mutex after each customer leaves, and the teller that sees it reach 50 will set the shared flag closing and release customer_arrived for all three tellers, itself included.
+
+- A teller will check closing right after customer_arrived.acquire(). If it is set, there will be no customer, so it will break out of the loop and print "leaving for the day". The flag will be written inside mutex before the releases, and the other tellers will read it only after their acquire() returns, so they will always see it set. The teller that wakes the others will also release its own semaphore, so it will take the same path out instead of needing a special case.
+
+- I will remove the all_served semaphore and the daemon=True threads from session 2. Daemon threads let the program exit while tellers are still blocked, which only hides the problem. main() will join all 50 customers and then all 3 tellers, so the program will only end when every thread has finished by itself. That will make a leftover blocked teller show up as a hang instead of being hidden.
+
+- main() will print "The bank closes for the day." after the joins, because it will be the one place that knows every thread is done. It has no thread prefix in the sample, so it will be a plain print.
+
+- The customer will leave with "goes to door" and "leaves the bank". The sample shows these lines without any door semaphore, and the spec only limits entering to two at a time, so I will not add one for leaving.
+
+The concepts I will use will be semaphores as signals in both directions of one conversation, a shared flag plus a wake-up release to end threads that are blocked, and why a thread will have to be woken to be told that there is nothing left to do.
