@@ -41,9 +41,9 @@ current_customer = [None] * NUM_TELLERS
 # "deposit" or "withdrawal" for the customer at each teller
 current_kind = [None] * NUM_TELLERS
 
-# TEMPORARY (session 2 only, will replace later in session 5)
+# customers that have finished and left
 customers_served = 0
-all_served = threading.Semaphore(0)
+closing = False
 
 def say(kind, ident, partner, msg):
   print_lock.acquire()
@@ -51,7 +51,7 @@ def say(kind, ident, partner, msg):
   print_lock.release()
 
 def teller(tid):
-  global tellers_ready, customers_served
+  global tellers_ready, customers_served, closing
   first_time = True
 
   while True:
@@ -72,8 +72,11 @@ def teller(tid):
     ready_tellers.release()
 
     say("Teller", tid, "", "waiting for a customer")
-    # sleep until a customer introduces itself
+    # sleep until a customer introduces itself or the bank closes
     customer_arrived[tid].acquire()          
+
+    if closing:
+      break
 
     cid = current_customer[tid]
     say("Teller", tid, f"Customer {cid}", "serving a customer")
@@ -107,13 +110,16 @@ def teller(tid):
     say("Teller", tid, f"Customer {cid}", "wait for customer to leave.")
     customer_left[tid].acquire()
 
-    # TEMPORARY: count the customer and let main know when all 50 were matched
+    # the teller serving the last customer wakes every teller to close
     mutex.acquire()
     customers_served += 1
-    last = (customers_served == NUM_CUSTOMERS)
+    if customers_served == NUM_CUSTOMERS:
+      closing = True
+      for t in range(NUM_TELLERS):
+        customer_arrived[t].release()
     mutex.release()
-    if last:
-      all_served.release()
+
+  say("Teller", tid, "", "leaving for the day")
 
 def customer(cid):
   kind = random.choice(["deposit", "withdrawal"])
@@ -159,9 +165,11 @@ def customer(cid):
   say("Customer", cid, "", "leaves the bank")
   
 def main():
-  # TEMPORARY: tellers are daemons so the program can end while they wait
+  tellers = []
   for i in range(NUM_TELLERS):
-    threading.Thread(target=teller, args=(i,), daemon=True).start()
+    t = threading.Thread(target=teller, args=(i,))
+    tellers.append(t)
+    t.start()
 
   customers = []
   for i in range(NUM_CUSTOMERS):
@@ -171,8 +179,10 @@ def main():
 
   for t in customers:
     t.join()
-  # wait until every customer reached a teller
-  all_served.acquire()     
+  for t in tellers:
+    t.join()
+
+  print("The bank closes for the day.")
 
 
 if __name__ == "__main__":
